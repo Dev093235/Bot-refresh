@@ -1,60 +1,37 @@
-import os
+from flask import Flask, request
 import random
 import requests
-from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Environment variables (Railway/Render par set karna)
-PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN", "YOUR_PAGE_ACCESS_TOKEN")
-VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "mohitbot123")
-
-# Some sample replies
+# Flirty replies ka stock
 flirty_replies = [
-    "Aap itne cute ho, nazar na lage! 😘",
-    "Aap se baat karke lagta hai, din ban gaya 😍",
-    "Mujhe aap pasand ho, zyada mat poochna kyun! 😉",
+    "Aap hamesha itne cute lagte ho ya aaj kuch special hai? 😉",
+    "Aapka naam Google hai kya? Kyunki mere saare answers aap hi ho! 😘",
+    "Mujhe to laga tha angels sirf heaven me hote hain, par aap yahan kaise? 😍",
+    "Aapki ek smile kaafi hai din banane ke liye! 🌟"
 ]
 
-# Webhook verification route (GET)
-@app.route("/", methods=["GET"])
-def verify():
-    # Facebook will send GET request with hub.verify_token and hub.challenge
-    if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
-        if request.args.get("hub.verify_token") == VERIFY_TOKEN:
-            return request.args["hub.challenge"], 200
-        return "Verification token mismatch", 403
-    return "Hello, this is a Messenger Bot!", 200
+@app.route("/")
+def home():
+    return "Mohit Bot Active 😎"
 
-# Webhook receiving route (POST)
-@app.route("/", methods=["POST"])
-def webhook():
+# Bot ka main auto-reply setup
+@app.route("/bot", methods=["POST"])
+def bot_reply():
     data = request.get_json()
-    if data.get("object") == "page":
-        for entry in data.get("entry", []):
-            for event in entry.get("messaging", []):
-                if event.get("message"):
-                    # Sender ID
-                    sender_id = event["sender"]["id"]
-                    # Text user sent
-                    user_message = event["message"].get("text", "")
-                    
-                    # Prepare a flirty reply
-                    reply_text = random.choice(flirty_replies)
-                    send_message(sender_id, reply_text)
-    return jsonify({"status": "ok"}), 200
+    user_message = data.get("message", "").lower()
+    sender_name = data.get("name", "User")
 
-def send_message(recipient_id, text):
-    """Send a text message via Facebook Graph API."""
-    url = "https://graph.facebook.com/v17.0/me/messages"
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    json_data = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": text}
-    }
-    response = requests.post(url, params=params, json=json_data)
-    if response.status_code != 200:
-        print("Error sending message:", response.text)
+    # Flirty reply ka magic ✨
+    if "hi" in user_message or "hello" in user_message:
+        return {"reply": f"Hello {sender_name}! Kya haal hai? 💖"}
+
+    elif "kaise ho" in user_message:
+        return {"reply": f"Main to full mast! Tum batao {sender_name}, aaj chand se zyada chamak rahe ho! 🌙"}
+
+    else:
+        return {"reply": random.choice(flirty_replies)}
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(port=5000)
